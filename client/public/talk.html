@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        *{
+            margin: 0;
+            padding: 0;
+        }
+        .box{
+            width: 400px;
+            height: 550px;
+            margin:50px auto;
+            border:1px solid #ccc;
+            position: relative;
+        }
+        .top{
+            position: absolute;
+            top:20px;
+            left:20px;
+            right:20px;
+            bottom:80px;
+            overflow: auto;
+        }
+        .bottom{
+            position: absolute;
+            bottom:20px;
+            left:20px;
+            right:20px;
+        }
+
+        #message{
+            width: 200px;
+            height: 30px;
+            border:1px solid #ccc;
+            line-height: 30px;
+            float: left;
+            padding-left:10px;
+            box-sizing: border-box;
+        }
+        #send{
+            width: 50px;
+            float:right;
+            height: 30px;
+        }
+        #id{
+            float:right;
+            width: 50px;
+        }
+        .row{
+            line-height: 35px;
+        }
+        .id{
+            font-size: 40px;
+            font-weight: 600;
+            text-align: center;
+            margin-top: 30px;
+        }
+    </style>
+</head>
+<body>
+    <div class="id"></div>
+    <div class="box">
+        <div class="top">
+            
+        </div>
+        <div class="bottom">
+            <input type="text" id="message">
+            <input type="button" value="发送" id="send">
+            <label for="id">私发id:</label>
+            <input id="id" type="text">
+        </div>
+    </div>
+    <script src="./jquery-1.12.4.js"></script>
+    <!-- 
+        我们下载的socket.io这个包里面有一个文件夹叫做socket.io-client,里面的dist/socket.io.js 
+        把这个文件拷贝到前端静态资源服务器里面
+    -->
+    <script src="./socket.io.js"></script>
+    <script>
+        //引入socket.io.js以后就会有一个io方法,通过io连接服务端
+        var server = io('http://10.36.149.35:6666');
+        //记录下一共有多少条消息
+        var count = 0;
+        var userid=null
+        server.emit('login')
+        server.once('login',function(data){
+            userid = data //分配id
+            $(".id").html("id:"+userid)
+            //绑定私有监听
+            server.on('msg-from-server'+userid,function(data){
+                count++;
+                //把接收到的服务器消息,显示在聊天框里面
+                $('.top').append('<div class="row">'+data+'</div>');
+                $('.top').scrollTop(count*35);
+            })
+        })
+        //监听服务器发送给客户端消息的事件
+        server.on('msg-from-server',function(data){
+            count++;
+            //把接收到的服务器消息,显示在聊天框里面
+            $('.top').append('<div class="row">'+data+'</div>');
+            $('.top').scrollTop(count*35);
+        })
+        //点击send触发私有事件
+        $('#send').click(function(){
+            var json = {"id":$('#id').val()?parseInt($('#id').val()):"","msg":$('#message').val()}
+            server.emit('msg-from-client',JSON.stringify(json));
+            $('#message').val('')
+        })
+        //在message里面按回车也可以发消息
+        $('#message').keyup(function(e){
+            if(e.keyCode==13){
+                var json = {"id":$('#id').val()?parseInt($('#id').val()):"","msg":$('#message').val()}
+                server.emit('msg-from-client',JSON.stringify(json));
+                $('#message').val('')
+            }
+        })
+    </script>
+</body>
+</html>
